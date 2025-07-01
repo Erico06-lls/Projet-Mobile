@@ -7,11 +7,11 @@ class ObjectDetector {
   Interpreter? _interpreter;
   List<String> _labels = [];
   final Logger _logger = Logger('ObjectDetector');
-  final int _inputSize = 300; // taille standard pour SSD MobileNet
+  final int _inputSize = 300; // SSD MobileNet standard
 
   ObjectDetector([List<String>? labels]) : _labels = labels ?? [];
 
-  /// Chargement du modèle et des labels
+  /// Chargement du modèle TFLite et des étiquettes
   Future<void> loadModel(BuildContext context) async {
     try {
       _interpreter = await Interpreter.fromAsset('mobilenet.tflite');
@@ -30,7 +30,7 @@ class ObjectDetector {
     }
   }
 
-  /// Détection d'objets dans une image
+  /// Effectue la détection d’objets
   List<Map<String, dynamic>> detectObjects(img.Image image) {
     if (_interpreter == null) {
       _logger.warning('Le modèle n\'est pas chargé.');
@@ -38,50 +38,54 @@ class ObjectDetector {
     }
 
     // Redimensionnement de l'image
-    var resizedImage = img.copyResize(image, width: _inputSize, height: _inputSize);
-    var input = _imageToByteListFloat32(resizedImage);
+    final resizedImage = img.copyResize(image, width: _inputSize, height: _inputSize);
+    final input = _imageToByteListFloat32(resizedImage);
 
-    // Initialisation des sorties
-    var outputBoxes = List.generate(10, (_) => List.filled(4, 0.0)); // [ymin, xmin, ymax, xmax]
-    var outputClasses = List.filled(10, 0.0); // classes détectées
-    var outputScores = List.filled(10, 0.0); // scores
-    var outputNum = List.filled(1, 0.0); // nombre de détections
+    // Initialisation des sorties [1, 10, ...]
+    final outputBoxes = List.generate(1, (_) => List.generate(10, (_) => List.filled(4, 0.0)));
+    final outputClasses = List.generate(1, (_) => List.filled(10, 0.0));
+    final outputScores = List.generate(1, (_) => List.filled(10, 0.0));
+    final outputNum = List.filled(1, 0.0);
 
-    final output = {
-    0: outputBoxes,
-    1: outputClasses,
-    2: outputScores,
-    3: outputNum,
-  };
+    final outputs = {
+      0: outputBoxes,
+      1: outputClasses,
+      2: outputScores,
+      3: outputNum,
+    };
 
-  _interpreter!.runForMultipleInputs([input], output);
+    // Exécution de l’inférence
+    _interpreter!.runForMultipleInputs([input], outputs);
 
-    // Traitement des résultats
+    final boxes = outputBoxes[0];
+    final classes = outputClasses[0];
+    final scores = outputScores[0];
+    final numDetections = outputNum[0].toInt();
+
     List<Map<String, dynamic>> results = [];
-    int numDetections = outputNum[0].toInt();
 
     for (int i = 0; i < numDetections && i < 10; i++) {
-      double score = outputScores[i];
+      final score = scores[i];
       if (score > 0.5) {
-        int classIndex = outputClasses[i].toInt();
-        String label = classIndex < _labels.length ? _labels[classIndex] : 'unknown';
+        final classIndex = classes[i].toInt();
+        final label = classIndex < _labels.length ? _labels[classIndex] : 'unknown';
 
         results.add({
-          'box': outputBoxes[i],
+          'box': boxes[i], // Format : [ymin, xmin, ymax, xmax] (valeurs entre 0 et 1)
           'label': label,
           'score': score,
         });
 
-        _logger.info('Détection: $label (score: ${score.toStringAsFixed(2)})');
+        _logger.info('Détection: $label (score: ${(score * 100).toStringAsFixed(1)}%)');
       }
     }
 
     return results;
   }
 
-  /// Préparation de l’image pour le modèle
+  /// Prépare l’image au format attendu par le modèle (normalisée entre 0 et 1)
   List<List<List<List<double>>>> _imageToByteListFloat32(img.Image image) {
-    var convertedBytes = List.generate(
+    final convertedBytes = List.generate(
       1,
       (_) => List.generate(
         _inputSize,
@@ -89,19 +93,19 @@ class ObjectDetector {
       ),
     );
 
-    for (var i = 0; i < _inputSize; i++) {
-      for (var j = 0; j < _inputSize; j++) {
-        var pixel = image.getPixel(j, i);
-        convertedBytes[0][i][j][0] = (pixel.r - 127.5) / 127.5;
-        convertedBytes[0][i][j][1] = (pixel.g - 127.5) / 127.5;
-        convertedBytes[0][i][j][2] = (pixel.b - 127.5) / 127.5;
+    for (int i = 0; i < _inputSize; i++) {
+      for (int j = 0; j < _inputSize; j++) {
+        final pixel = image.getPixel(j, i);
+        convertedBytes[0][i][j][0] = pixel.r / 255.0;
+        convertedBytes[0][i][j][1] = pixel.g / 255.0;
+        convertedBytes[0][i][j][2] = pixel.b / 255.0;
       }
     }
 
     return convertedBytes;
   }
 
-  /// Libération de l’interpréteur
+  /// Libère les ressources
   void close() {
     _interpreter?.close();
   }
