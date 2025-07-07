@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'camera_screen.dart';
 import 'upload_image_screen.dart';
+import 'package:logging/logging.dart';
 
 void main() {
+  _setupLogging();
   runApp(const ObjectDetectionApp());
+}
+
+void _setupLogging() {
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record}');
+  });
 }
 
 class ObjectDetectionApp extends StatelessWidget {

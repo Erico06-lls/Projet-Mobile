@@ -25,7 +25,7 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
   }
 
   Future<void> _loadModel() async {
-    await _detector.loadModel(context); // MobileNet SSD par défaut
+    await _detector.loadModel(context);
     if (!mounted) return;
   }
 

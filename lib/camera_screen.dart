@@ -143,14 +143,12 @@ class DetectionPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.red
+      ..color = Colors.redAccent.withValues()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 3;
 
-    final textPainter = TextPainter(
-      textAlign: TextAlign.left,
-      textDirection: TextDirection.ltr,
-    );
+    final backgroundPaint = Paint()
+      ..color = Colors.black.withValues();
 
     for (var detection in detections) {
       final box = detection['box'];
@@ -168,11 +166,26 @@ class DetectionPainter extends CustomPainter {
 
       final textSpan = TextSpan(
         text: '$label ${(score * 100).toStringAsFixed(1)}%',
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
       );
-      textPainter.text = textSpan;
+
+      final textPainter = TextPainter(
+        text: textSpan,
+        textAlign: TextAlign.left,
+        textDirection: TextDirection.ltr,
+      );
+
       textPainter.layout();
-      textPainter.paint(canvas, Offset(rect.left, rect.top - 20));
+
+      final offset = Offset(rect.left, rect.top - textPainter.height - 5);
+
+      // Fond semi-transparent derrière le texte
+      canvas.drawRect(
+        Rect.fromLTWH(offset.dx, offset.dy, textPainter.width + 6, textPainter.height + 4),
+        backgroundPaint,
+      );
+
+      textPainter.paint(canvas, offset);
     }
   }
 

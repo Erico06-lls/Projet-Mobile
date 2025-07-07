@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -7,14 +8,14 @@ class ObjectDetector {
   Interpreter? _interpreter;
   List<String> _labels = [];
   final Logger _logger = Logger('ObjectDetector');
-  final int _inputSize = 300; // SSD MobileNet standard
+  final int _inputSize = 300;
 
   ObjectDetector([List<String>? labels]) : _labels = labels ?? [];
 
   /// Chargement du modèle TFLite et des étiquettes
   Future<void> loadModel(BuildContext context) async {
     try {
-      _interpreter = await Interpreter.fromAsset('mobilenet.tflite');
+      _interpreter = await Interpreter.fromAsset('assets/mobilenet.tflite');
 
       if (!context.mounted) return;
 
@@ -39,7 +40,7 @@ class ObjectDetector {
 
     // Redimensionnement de l'image
     final resizedImage = img.copyResize(image, width: _inputSize, height: _inputSize);
-    final input = _imageToByteListFloat32(resizedImage);
+    final input = _imageToByteListUnit8(resizedImage);
 
     // Initialisation des sorties [1, 10, ...]
     final outputBoxes = List.generate(1, (_) => List.generate(10, (_) => List.filled(4, 0.0)));
@@ -84,21 +85,16 @@ class ObjectDetector {
   }
 
   /// Prépare l’image au format attendu par le modèle (normalisée entre 0 et 1)
-  List<List<List<List<double>>>> _imageToByteListFloat32(img.Image image) {
-    final convertedBytes = List.generate(
-      1,
-      (_) => List.generate(
-        _inputSize,
-        (_) => List.generate(_inputSize, (_) => List.filled(3, 0.0)),
-      ),
-    );
+  Uint8List _imageToByteListUnit8(img.Image image) {
+    final convertedBytes = Uint8List(_inputSize * _inputSize * 3);
+    int pixelIndex = 0;
 
-    for (int i = 0; i < _inputSize; i++) {
-      for (int j = 0; j < _inputSize; j++) {
-        final pixel = image.getPixel(j, i);
-        convertedBytes[0][i][j][0] = pixel.r / 255.0;
-        convertedBytes[0][i][j][1] = pixel.g / 255.0;
-        convertedBytes[0][i][j][2] = pixel.b / 255.0;
+    for(int y = 0; y < _inputSize; y++) {
+      for(int x = 0; x < _inputSize; x++) {
+        final pixel = image.getPixel(x, y);
+        convertedBytes[pixelIndex++] = pixel.r.toInt();
+        convertedBytes[pixelIndex++] = pixel.g.toInt();
+        convertedBytes[pixelIndex++] = pixel.b.toInt();
       }
     }
 
