@@ -3,7 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:logging/logging.dart';
-import 'package:projet_mobile/object_detector.dart';
+import 'package:projet_mobile/object_reel_detector.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -19,7 +19,7 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraImage? _latestImage;
 
   final Logger _logger = Logger('CameraScreen');
-  final ObjectDetector _detector = ObjectDetector();
+  final ObjectReelDetector _detector = ObjectReelDetector();
   List<Map<String, dynamic>> _detections = [];
 
   @override

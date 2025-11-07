@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'camera_screen.dart';
 import 'upload_image_screen.dart';
 import 'package:logging/logging.dart';
 
@@ -46,21 +45,6 @@ class HomePage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.videocam),
-                label: const Text('Mode Temps Reel'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CameraScreen(),
-                    ),
-                  );
-                },
-              ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 icon: const Icon(Icons.image),
